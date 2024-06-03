@@ -110,22 +110,13 @@ if 'decorations' not in content:
 
 size = int(input("光的大小 (正常为4): "))
 
-if input("光影模式? (True或False): ") == "True":
-    depth = int(input("光的深度 (正常为-1): "))
-    repeat = int(input("光的叠加次数 (正常为16且越多越卡): "))
-    color = input("光的颜色 (正常为ffffff): ")
-    opacity = input("光的不透明度 (正常為100): ")
-    maskingType = "None"
-    maskingFrontDepth = -1
-    maskingBackDepth = -1
-else:
-    depth = int(input("光的深度 (正常为-1): "))
-    repeat = 1
-    color = "ffffff"
-    opacity = "100"
-    maskingType = "Mask"
-    maskingFrontDepth = int(input("最高渲染层 (正常为-1): "))
-    maskingBackDepth = int(input("最底渲染层 (正常为-1): "))
+depth = int(input("光的深度 (正常为-1): "))
+repeat = int(input("光的叠加次数 (正常为16且越多越卡): "))
+color = input("光的颜色 (正常为ffffff): ")
+opacity = input("光的不透明度 (正常為100): ")
+maskingType = "None"
+maskingFrontDepth = -1
+maskingBackDepth = -1
 
 if input("全轨道范围? (True或False): ") == "True":
     Tile_FullRange = True
@@ -165,19 +156,29 @@ for i in range(total_floor + 1):
         tile_bpm_list[i] = tile_bpm_list[i - 1]
 
 tile_size = 100
+tile_opacity = 100
 
 tile_size_list = [tile_size] + ["None"] * total_floor
+tile_opacity_list = [tile_opacity] + ["None"] * total_floor
 
 for action in content["actions"]:
     if action["eventType"] == "PositionTrack":
-        if action["justThisTile"] == "true":
-            tile_size_list[action["floor"] + 1] = tile_size
-        tile_size = action["scale"]
-        tile_size_list[action["floor"]] = tile_size
+        if "justThisTile" in action:
+            if action["justThisTile"] == "true":
+                tile_size_list[action["floor"] + 1] = tile_size
+                tile_opacity_list[action["floor"] + 1] = tile_opacity
+        if "scale" in action:
+            tile_size = action["scale"]
+            tile_size_list[action["floor"]] = tile_size
+        if "opacity" in action:
+            tile_opacity = action["opacity"]
+            tile_opacity_list[action["floor"]] = tile_opacity
 
 for i in range(total_floor + 1):
     if tile_size_list[i] == "None":
         tile_size_list[i] = tile_size_list[i - 1]
+    if tile_opacity_list[i] == "None":
+        tile_opacity_list[i] = tile_opacity_list[i - 1]
 
 if content["settings"]["trackAnimation"] == "None":
     light_show = [False] + ["None"] * total_floor
@@ -233,9 +234,14 @@ for action in content["actions"]:
         else:
             end_tile = total_floor + end_tile[0]
         final_tag = ""
-        for tag in range(start_tile, end_tile, int(action["gapLength"]) + 1):
-            final_tag = final_tag + "Light_of_Floor_" + str(tag) + " "
-        final_tag = final_tag + "Light_of_Floor_" + str(end_tile)
+        if "gapLength" in action:
+            for tag in range(start_tile, end_tile, int(action["gapLength"]) + 1):
+                final_tag = final_tag + "Light_of_Floor_" + str(tag) + " "
+            final_tag = final_tag + "Light_of_Floor_" + str(end_tile)
+        else:
+            for tag in range(start_tile, end_tile):
+                final_tag = final_tag + "Light_of_Floor_" + str(tag) + " "
+            final_tag = final_tag + "Light_of_Floor_" + str(end_tile)
 
         # final_tag為所有標籤
 
@@ -273,20 +279,36 @@ for action in content["actions"]:
 
         if "scale" in action:
             for size_number in range(repeat):
+                if "gapLength" in action:
+                    final_tag = ""
+                    for tag in range(start_tile, end_tile, int(action["gapLength"]) + 1):
+                        final_tag = final_tag + "Light_of_Floor_" + str(tag) + "_size_" + str(size_number) + " "
+                    final_tag = final_tag + "Light_of_Floor_" + str(end_tile) + "_size_" + str(size_number)
+                else:
+                    final_tag = ""
+                    for tag in range(start_tile, end_tile):
+                        final_tag = final_tag + "Light_of_Floor_" + str(tag) + "_size_" + str(size_number) + " "
+                    final_tag = final_tag + "Light_of_Floor_" + str(end_tile) + "_size_" + str(size_number)
 
-                final_tag = ""
-                for tag in range(start_tile, end_tile, int(action["gapLength"]) + 1):
-                    final_tag = final_tag + "Light_of_Floor_" + str(tag) + "_size_" + str(size_number) + " "
-                final_tag = final_tag + "Light_of_Floor_" + str(end_tile) + "_size_" + str(size_number)
+                if isinstance(action["scale"], list):
+                    new_action = {
+                        "floor": action["floor"],
+                        "eventType": "MoveDecorations",
+                        "duration": action["duration"],
+                        "scale": [(100 + size_number * size) * action["scale"][0] / 100,
+                                  (100 + size_number * size) * action["scale"][1] / 100],
+                        "tag": f"{final_tag}",
+                    }
+                else:
+                    new_action = {
+                        "floor": action["floor"],
+                        "eventType": "MoveDecorations",
+                        "duration": action["duration"],
+                        "scale": [(100 + size_number * size) * action["scale"] / 100,
+                                  (100 + size_number * size) * action["scale"] / 100],
+                        "tag": f"{final_tag}",
+                    }
 
-                new_action = {
-                    "floor": action["floor"],
-                    "eventType": "MoveDecorations",
-                    "duration": action["duration"],
-                    "scale": [(100 + size_number * size) * action["scale"][0] / 100,
-                              (100 + size_number * size) * action["scale"][1] / 100],
-                    "tag": f"{final_tag}",
-                }
                 content["actions"].append(new_action)
                 tile_action_num += 1
 
@@ -296,7 +318,6 @@ new_color_list = ["70", "58", "46", "3d", "32", "32", "24", "24", "24", "24", "2
 List = [0] + angleData
 Light_of_Floor_Angle = []
 Light_of_Floor_TurnAngle = []
-
 
 List_len = len(List)
 for i in range(List_len - 1):
@@ -461,7 +482,7 @@ for floor in range(List_len):
             "eventType": "MoveDecorations",
             "duration": 0,
             "tag": f"Light_of_Floor_{floor}",
-            "opacity": f'{opacity}',
+            "opacity": f'{float(opacity) * float(tile_opacity_list[floor]) / 100}',
             "parallaxOffset": [0, 0],
             "angleOffset": 0,
             "ease": "Linear",
@@ -479,14 +500,14 @@ elif tile_action_num <= 5000:
 else:
     print(f"新增了 {Colors.RED}{tile_action_num}{Colors.RESET} 个移动装饰")
 
-if fake_tile_num <= 4800:
+if fake_tile_num <= 16000:
     print(f"新增了 {Colors.GREEN}{fake_tile_num}{Colors.RESET} 个假轨道装饰")
-elif fake_tile_num <= 16000:
+elif fake_tile_num <= 80000:
     print(f"新增了 {Colors.YELLOW}{fake_tile_num}{Colors.RESET} 个假轨道装饰")
 else:
     print(f"新增了 {Colors.RED}{fake_tile_num}{Colors.RESET} 个假轨道装饰")
 
-if true_tile_num <= 200:
+if true_tile_num <= 300:
     print(f"新增了 {Colors.GREEN}{true_tile_num}{Colors.RESET} 个真轨道装饰")
 elif true_tile_num <= 1000:
     print(f"新增了 {Colors.YELLOW}{true_tile_num}{Colors.RESET} 个真轨道装饰")
