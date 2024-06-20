@@ -250,12 +250,16 @@ for action in content["actions"]:
 
         if "gapLength" in action:
             for tag in range(start_tile, end_tile, int(action["gapLength"]) + 1):
-                final_tag = final_tag + "Light_of_Floor_" + str(tag) + " "
-            final_tag = final_tag + "Light_of_Floor_" + str(end_tile)
+                if tag in range(Start_Tile, End_Tile+1):
+                    final_tag = final_tag + "Light_of_Floor_" + str(tag) + " "
+            if end_tile in range(Start_Tile, End_Tile+1):
+                final_tag = final_tag + "Light_of_Floor_" + str(end_tile)
         else:
             for tag in range(start_tile, end_tile):
-                final_tag = final_tag + "Light_of_Floor_" + str(tag) + " "
-            final_tag = final_tag + "Light_of_Floor_" + str(end_tile)
+                if tag in range(Start_Tile, End_Tile+1):
+                    final_tag = final_tag + "Light_of_Floor_" + str(tag) + " "
+            if end_tile in range(Start_Tile, End_Tile+1):
+                final_tag = final_tag + "Light_of_Floor_" + str(end_tile)
 
         # final_tag為所有標籤
 
@@ -288,21 +292,26 @@ for action in content["actions"]:
             "ease": f"{action["ease"]}",
             "eventTag": f"{action["eventTag"]}",
         }
-        content["actions"].append(new_action)
-        tile_action_num += 1
+        if final_tag != "":
+            content["actions"].append(new_action)
+            tile_action_num += 1
 
         if "scale" in action:
             for size_number in range(repeat):
                 if "gapLength" in action:
                     final_tag = ""
                     for tag in range(start_tile, end_tile, int(action["gapLength"]) + 1):
-                        final_tag = final_tag + "Light_of_Floor_" + str(tag) + "_size_" + str(size_number) + " "
-                    final_tag = final_tag + "Light_of_Floor_" + str(end_tile) + "_size_" + str(size_number)
+                        if tag in range(Start_Tile, End_Tile + 1):
+                            final_tag = final_tag + "Light_of_Floor_" + str(tag) + "_size_" + str(size_number) + " "
+                    if tag in range(Start_Tile, End_Tile + 1):
+                        final_tag = final_tag + "Light_of_Floor_" + str(end_tile) + "_size_" + str(size_number)
                 else:
                     final_tag = ""
                     for tag in range(start_tile, end_tile):
-                        final_tag = final_tag + "Light_of_Floor_" + str(tag) + "_size_" + str(size_number) + " "
-                    final_tag = final_tag + "Light_of_Floor_" + str(end_tile) + "_size_" + str(size_number)
+                        if tag in range(Start_Tile, End_Tile + 1):
+                            final_tag = final_tag + "Light_of_Floor_" + str(tag) + "_size_" + str(size_number) + " "
+                    if tag in range(Start_Tile, End_Tile + 1):
+                        final_tag = final_tag + "Light_of_Floor_" + str(end_tile) + "_size_" + str(size_number)
 
                 if isinstance(action["scale"], list):
                     new_action = {
@@ -323,8 +332,9 @@ for action in content["actions"]:
                         "tag": f"{final_tag}",
                     }
 
-                content["actions"].append(new_action)
-                tile_action_num += 1
+                if final_tag != "":
+                    content["actions"].append(new_action)
+                    tile_action_num += 1
 
 old_color_list = ["32", "1e", "14", "0f", "0a", "0a", "05", "05", "05", "05", "05", "05", "05", "05", "05", "05", "05"]
 new_color_list = ["70", "58", "46", "3d", "32", "32", "24", "24", "24", "24", "24", "24", "24", "24", "24", "24", "24"]
@@ -452,6 +462,7 @@ for floor in range(List_len):
             else: true_tile_num += 1
 
     if light_hide[floor] is True:
+
         if floor != 0:
             actions = {
                 "floor": floor,
