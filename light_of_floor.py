@@ -4,9 +4,21 @@ import os
 
 import shutil
 
+import re
+
 from tkinter import Tk
 
 from tkinter.filedialog import askopenfilename
+
+
+def is_valid_color(color_code):
+    # 定義一個正則表達式模式來匹配有效的顏色代碼
+    pattern = re.compile(r'^[0-9A-Fa-f]{6}$')
+    # 使用正則表達式匹配輸入字符串
+    if pattern.match(color_code):
+        return True
+    else:
+        return False
 
 
 def ms_cal(beats, bpm):
@@ -114,11 +126,70 @@ tile_bpm = content["settings"]["bpm"]
 tile_bpm_bol_list = [True] + [False] * total_floor
 tile_bpm_list = [tile_bpm] + ["None"] * total_floor
 
-size = int(input("光的大小 (正常为4): "))
-depth = int(input("光的深度 (正常为-1): "))
-repeat = int(input("光的叠加次数 (正常为16且越多越卡): "))
-color = input("光的颜色 (正常为ffffff): ")
-opacity = input("光的不透明度 (正常為100): ")
+while True:
+    size = input("光的大小 (正常为4): ")
+    try:
+        size = float(size)
+    except ValueError:
+        print("输入只能为数字")
+    else:
+        size = float(size)
+        break
+
+while True:
+    depth = input("光的深度 (正常为-1): ")
+    try:
+        depth = int(depth)
+    except ValueError:
+        print("输入只能为整数")
+    else:
+        depth = int(depth)
+        break
+
+while True:
+    repeat = input("光的叠加次数 (正常为16且越多越卡): ")
+
+    try:
+        repeat = int(repeat)
+    except ValueError:
+        print("输入只能为正整数")
+    else:
+        if int(repeat) <= 0:
+            print("输入只能为正整数")
+        else:
+            repeat = int(repeat)
+            break
+
+while True:
+    color = input("光的颜色 (正常为ffffff): ")
+
+    if is_valid_color(color) is False:
+        ValueError("ColorPlz")
+    
+    try:
+        color = str(color)
+    except ValueError:
+        print("输入只能为16进制颜色")
+    else:
+        color = str(color)[:6]
+        break
+
+while True:
+    opacity = input("光的不透明度 (正常為100): ")
+
+    try:
+        opacity = float(opacity)
+    except ValueError:
+        print("输入只能为0~100的数")
+    else:
+        if float(opacity) < 0:
+            print("输入只能为0~100的数")
+        elif float(opacity) > 100:
+            print("输入只能为0~100的数")
+        else:
+            opacity = float(opacity)
+            break
+
 maskingType = "None"
 maskingFrontDepth = -1
 maskingBackDepth = -1
@@ -126,18 +197,58 @@ maskingBackDepth = -1
 if input("全轨道范围? (0或1): ") == "1":
     Tile_FullRange = True
     Start_Tile = 0
-    End_Tile = 0
+    End_Tile = len(angleData)
     Tile_number = len(angleData)
 else:
     Tile_FullRange = False
-    Start_Tile = int(input("开始轨道数 (例如3): "))
-    End_Tile = int(input("结束轨道数 (例如10): "))
+
+    while True:
+        Start_Tile = input("开始轨道数 (例如3): ")
+        
+        try:
+            Start_Tile = int(Start_Tile)
+        except ValueError:
+            print(f"输入只能为0~{len(angleData)}的整数")
+        else:
+            if int(Start_Tile) < 0:
+                print(f"输入只能为0~{len(angleData)}的整数")
+            elif int(Start_Tile) > len(angleData):
+                print(f"输入只能为0~{len(angleData)}的整数")
+            else:            
+                Start_Tile = int(Start_Tile)
+                break
+    
+    while True:
+        End_Tile = int(input("结束轨道数 (例如10): "))
+        
+        try:
+            End_Tile = int(End_Tile)
+        except ValueError:
+            print(f"输入只能为{Start_Tile}~{len(angleData)}的整数")
+        else:
+            if int(End_Tile) < Start_Tile:
+                print(f"输入只能为{Start_Tile}~{len(angleData)}的整数")
+            elif int(End_Tile) > len(angleData):
+                print(f"输入只能为{Start_Tile}~{len(angleData)}的整数")
+            else:
+                End_Tile = int(End_Tile)
+                break
+
     Tile_number = End_Tile - Start_Tile + 1
 
 if input("范围名称? (0或1): ") == "0":
     rangename = ""
 else:
     rangename = f'_{input("范围名称 (例如Range1): ")}'
+
+if input("根据轨道动画移动光? (0或1): ") == "1":  AnimateTrack = True
+else: AnimateTrack = False
+
+if input("根据移动轨道移动光? (0或1): ") == "1":  MoveTile = True
+else: MoveTile = False
+
+if input("将光锁定? (0或1): ") == "1": Locked = True
+else: Locked = False
 
 redo_ms = 0
 
@@ -197,7 +308,7 @@ else: light_show = [True] + ["None"] * total_floor
 
 if "beatsAhead" in content["settings"]:
     light_show_ms = [ms_cal(content["settings"]["beatsAhead"], tile_bpm_list[0])] + ["None"] * total_floor
-else: light_show_ms = [0] + ["None"] * total_floor
+else: light_show_ms = [3] + ["None"] * total_floor
 
 if content["settings"]["trackDisappearAnimation"] == "None":
     light_hide = [False] + ["None"] * total_floor
@@ -205,22 +316,28 @@ else: light_hide = [True] + ["None"] * total_floor
 
 if "beatsBehind" in content["settings"]:
     light_hide_ms = [ms_cal(content["settings"]["beatsBehind"], tile_bpm_list[0])] + ["None"] * total_floor
-else: light_hide_ms = [0] + ["None"] * total_floor
+else: light_hide_ms = [4] + ["None"] * total_floor
 
 for action in content["actions"]:
-    if action["eventType"] == "AnimateTrack":
+    if action["eventType"] == "AnimateTrack" or "ChangeTrack":
         if "trackAnimation" in action:
             if action["trackAnimation"] == "None":
                 light_show[action["floor"]] = False
             else:
                 light_show[action["floor"]] = True
-                light_show_ms[action["floor"]] = ms_cal(action["beatsAhead"], tile_bpm_list[action["floor"]])
+
+                if "beatsAhead" in action:
+                    light_show_ms[action["floor"]] = ms_cal(action["beatsAhead"], tile_bpm_list[action["floor"]])
+                else:  light_show_ms[action["floor"]] = ms_cal(3, tile_bpm_list[0])
         if "trackDisappearAnimation" in action:
             if action["trackDisappearAnimation"] == "None":
                 light_hide[action["floor"]] = False
             else:
                 light_hide[action["floor"]] = True
-                light_hide_ms[action["floor"]] = ms_cal(action["beatsBehind"], tile_bpm_list[action["floor"]])
+
+                if "beatsBehind" in action:
+                    light_hide_ms[action["floor"]] = ms_cal(action["beatsBehind"], tile_bpm_list[action["floor"]])
+                else:  light_hide_ms[action["floor"]] = ms_cal(3, tile_bpm_list[0])
 
 for i in range(total_floor + 1):
     if light_show[i] == "None":
@@ -233,7 +350,7 @@ for i in range(total_floor + 1):
         light_hide_ms[i] = light_hide_ms[i - 1]
 
 for action in content["actions"]:
-    if action["eventType"] == "MoveTrack":
+    if action["eventType"] == "MoveTrack" and MoveTile is True:
         start_tile = action["startTile"]
         end_tile = action["endTile"]
         if start_tile[1] == "ThisTile":
@@ -362,6 +479,7 @@ else:
     Light_of_Floor_TurnAngle.append(List[-1])
 
 for floor in range(List_len):
+
     if Tile_FullRange is True or Start_Tile <= floor <= End_Tile:
         DoTile = True
     else:
@@ -389,6 +507,7 @@ for floor in range(List_len):
                 decoration = {
                     "floor": floor,
                     "eventType": "AddDecoration",
+                    "locked": Locked,
                     "decorationImage": f"Light_of_Floor_white/{Light_of_Floor_Angle[floor]}.png",
                     "position": [0, 0],
                     "relativeTo": "Tile",
@@ -425,6 +544,7 @@ for floor in range(List_len):
                 decoration = {
                     "floor": floor,
                     "eventType": "AddObject",
+                    "locked": Locked,
                     "objectType": "Floor",
                     "planetColorType": "DefaultRed",
                     "planetColor": "ff0000",
@@ -461,7 +581,7 @@ for floor in range(List_len):
             if legacy: fake_tile_num += 1
             else: true_tile_num += 1
 
-    if light_hide[floor] is True:
+    if light_hide[floor] is True and AnimateTrack is True and DoTile is True:
 
         if floor != 0:
             actions = {
@@ -478,7 +598,7 @@ for floor in range(List_len):
             content["actions"].append(actions)
             tile_action_num += 1
 
-    if light_show[floor] is True:
+    if light_show[floor] is True and AnimateTrack is True and DoTile is True:
 
         actions = {
             "floor": floor,
@@ -495,7 +615,7 @@ for floor in range(List_len):
 
         tile_action_num += 1
 
-    else:
+    elif AnimateTrack is True and DoTile is True:
 
         actions = {
             "floor": 0,
@@ -511,6 +631,8 @@ for floor in range(List_len):
         content["actions"].append(actions)
 
         tile_action_num += 1
+
+    else: action = {}
 
 print("")
 
@@ -532,17 +654,24 @@ elif true_tile_num <= 1000:
     print(f"新增了 {Colors.YELLOW}{true_tile_num}{Colors.RESET} 个真轨道装饰")
 else: print(f"新增了 {Colors.RED}{true_tile_num}{Colors.RESET} 个真轨道装饰")
 
-text_adofai = "light"
-
-new_path = path.rstrip('.adofai') + f"_{text_adofai}.adofai"
-
-print(json.dumps(content, indent=4), file=open(new_path, 'w', encoding='utf-8'))
-
 fpath, fname = os.path.split(path)
 
 docpath = os.path.join(fpath, 'Light_of_Floor_white')
 
 if os.path.exists(docpath): pass
-else: shutil.copytree('./Light_of_Floor_white', docpath)
+else:
+    try:
+        shutil.copytree('./Light_of_Floor_white', docpath)
+    except FileNotFoundError:
+        print("错误! 找不到光线图片! 请确保图片资料夹和本python档在同一资料夹或是没有读取权限!")
+    else: shutil.copytree('./Light_of_Floor_white', docpath)
+
+text_adofai = "light"
+
+new_path = path.rstrip('.adofai') + f"_{text_adofai}.adofai"
+
+if os.path.exists(new_path):
+    if input("有相同的文件名 是否覆盖? (0或1): ") == "1":
+        print(json.dumps(content, indent=4), file=open(new_path, 'w', encoding='utf-8'))
 
 print(f"档案储存在 {new_path}")
